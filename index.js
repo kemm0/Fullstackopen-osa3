@@ -2,7 +2,6 @@ require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
-const mongoose = require('mongoose')
 const Person = require('./models/person')
 
 const app = express()
@@ -11,9 +10,6 @@ app.use(cors())
 app.use(express.static('build'))
 
 const PORT = process.env.PORT
-const url = process.env.MONGODB_URI
-
-mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false, useCreateIndex: true })
 
 morgan.token('content', function (req, res) { 
   if(req.method == 'POST'){
@@ -57,7 +53,7 @@ app.delete('/api/persons/:id',(request, response, next) => {
   })
   .catch(error => next(error))
 })
-app.post('/api/persons/',(request, response) => {
+app.post('/api/persons/',(request, response, next) => {
   const body = request.body
   const name = body.name
   const number = body.number
@@ -76,8 +72,10 @@ app.post('/api/persons/',(request, response) => {
     number: number
   })
   person.save().then(savedPerson => {
+    console.log(savedPerson)
     response.json(savedPerson)
   })
+  .catch(error => next(error))
 })
 
 app.put('/api/persons/:id',(request,response,next) => {
@@ -106,7 +104,10 @@ const errorHandler = (error, request, response, next) => {
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
   }
-
+  else if (error.name === 'ValidationError'){
+    console.log(error.message)
+    return response.status(400).json({error:error.message})
+  }
   next(error)
 }
 
